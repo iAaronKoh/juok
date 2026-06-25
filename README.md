@@ -7,7 +7,7 @@
 npm install -g vercel
 ```
 
-### 2. 登录 Vercel
+### 2. 登录
 ```bash
 vercel login
 ```
@@ -19,16 +19,15 @@ vercel --prod
 ```
 
 ### 4. 或推送到 GitHub 自动部署
-1. 在 GitHub 创建仓库
+1. GitHub 创建仓库
 2. 推送代码
-3. Vercel 导入 GitHub 仓库
-4. 一键部署
+3. Vercel 导入仓库，一键部署
 
 ## 接口
 
 - `GET /api/parse?url=xxx&line=S` - 代理解析视频
 
-## 技术栈
+## 注意
 
-- 前端: 纯 HTML/CSS/JS
-- 后端: Vercel Serverless Functions (Node.js)
+- `api/parse.js` 使用 CommonJS 格式，Vercel 默认支持
+- 无需 `vercel.json` 中的 `functions` 字段

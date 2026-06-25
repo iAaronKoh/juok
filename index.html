@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>剧OK - 在线播放</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0f0f0f;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
+            padding: 16px;
+            border-bottom: 1px solid #333;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header h1 { color: #e50914; font-size: 24px; font-weight: bold; }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 12px 16px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+        }
+        .search-box input:focus { border-color: #e50914; }
+        .search-box button {
+            padding: 12px 24px;
+            background: #e50914;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .search-box button:hover { opacity: 0.9; }
+        .player-section {
+            background: #1a1a1a;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+        }
+        .player-wrapper {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            background: #000;
+        }
+        .player-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .controls {
+            padding: 12px 16px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            border-top: 1px solid #333;
+        }
+        .controls label { color: #999; font-size: 13px; }
+        .controls select, .controls input {
+            padding: 8px 12px;
+            background: #0f0f0f;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 13px;
+            outline: none;
+        }
+        .controls button {
+            padding: 8px 16px;
+            background: #333;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .controls button:hover { background: #444; }
+        .controls button.active { background: #e50914; border-color: #e50914; }
+        .video-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+        }
+        .video-card {
+            background: #1a1a1a;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s;
+            border: 1px solid #333;
+        }
+        .video-card:hover { transform: scale(1.02); border-color: #e50914; }
+        .video-card img {
+            width: 100%;
+            aspect-ratio: 2/3;
+            object-fit: cover;
+            display: block;
+        }
+        .video-card .title {
+            padding: 8px;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .video-card .meta {
+            padding: 0 8px 8px;
+            font-size: 11px;
+            color: #999;
+        }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0 12px;
+            padding-left: 8px;
+            border-left: 3px solid #e50914;
+        }
+        @media (max-width: 768px) {
+            .video-list { grid-template-columns: repeat(3, 1fr); }
+            .controls { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>剧OK</h1>
+    </div>
+
+    <div class="container">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="输入腾讯视频/爱奇艺/优酷链接..." 
+                   value="https://v.qq.com/x/cover/m441e3rjq9kuht7.html">
+            <button onclick="play()">播放</button>
+        </div>
+
+        <div class="player-section">
+            <div class="player-wrapper" id="playerWrapper">
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#666;">
+                    输入链接点击播放
+                </div>
+            </div>
+            <div class="controls">
+                <label>解析线路:</label>
+                <select id="parseLine">
+                    <option value="S">S线路</option>
+                    <option value="F">F线路</option>
+                </select>
+                <button onclick="play()" class="active">立即播放</button>
+                <button onclick="fullscreen()">全屏</button>
+            </div>
+        </div>
+
+        <div class="section-title">热门影视</div>
+        <div class="video-list" id="videoList">
+            <div class="loading">加载中...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin + '/api/parse';
+
+        function play(url) {
+            const inputUrl = url || document.getElementById('searchInput').value.trim();
+            if (!inputUrl) {
+                alert('请输入视频链接');
+                return;
+            }
+
+            const line = document.getElementById('parseLine').value;
+            const parseUrl = `${API_BASE}?url=${encodeURIComponent(inputUrl)}&line=${line}`;
+
+            const wrapper = document.getElementById('playerWrapper');
+            wrapper.innerHTML = `<iframe src="${parseUrl}" allowfullscreen allow="autoplay; fullscreen"></iframe>`;
+        }
+
+        function fullscreen() {
+            const iframe = document.querySelector('#playerWrapper iframe');
+            if (iframe) {
+                if (iframe.requestFullscreen) iframe.requestFullscreen();
+                else if (iframe.webkitRequestFullscreen) iframe.webkitRequestFullscreen();
+            }
+        }
+
+        function loadDemoData() {
+            const demos = [
+                {title: "炽夏", img: "https://p3.qhimg.com/d/dy_f2532ff4118d3c5bb37e41f4eb9b25c2.jpg", url: "https://v.qq.com/x/cover/m441e3rjq9kuht7.html"},
+                {title: "莫离", img: "https://p3.qhimg.com/d/dy_490c02ab5500f6820d85aa12c32d2e5f.", url: "https://v.qq.com/x/cover/m441e3rjq9kuht7.html"},
+                {title: "主角", img: "https://p8.qhimg.com/d/dy_bcd6a4ed227532b2b42e579a792a2a29.", url: "https://v.qq.com/x/cover/m441e3rjq9kuht7.html"},
+                {title: "南部档案", img: "https://p1.qhimg.com/d/dy_69cbffcfb6c8ae9018dc7875ee776dde.jpg", url: "https://v.qq.com/x/cover/m441e3rjq9kuht7.html"},
+                {title: "耀眼", img: "https://p2.qhimg.com/d/dy_7df88c410e414f58b6cefb9cfe7755ae.jpg", url: "https://v.qq.com/x/cover/m441e3rjq9kuht7.html"},
+                {title: "烽火太行", img: "https://p5.qhimg.com/d/dy_989c937d07ff792834f66d66ec0301ca.jpg", url: "https://v.qq.com/x/cover/m441e3rjq9kuht7.html"},
+            ];
+
+            const list = document.getElementById('videoList');
+            list.innerHTML = demos.map(v => `
+                <div class="video-card" onclick="document.getElementById('searchInput').value='${v.url}';play('${v.url}')">
+                    <img src="${v.img}" loading="lazy" onerror="this.style.background='#333'">
+                    <div class="title">${v.title}</div>
+                    <div class="meta">点击播放</div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') play();
+        });
+
+        loadDemoData();
+    </script>
+</body>
+</html>
